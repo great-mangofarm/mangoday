@@ -1,6 +1,7 @@
 /**
  * 사이트 전역 설정. SEO(metadataBase, sitemap, robots)와 헤더/푸터에서 공유.
  * 배포 후 NEXT_PUBLIC_SITE_URL 을 실제 도메인으로 채운다(Phase 9).
+ * (빌드 시점 인라인 값 — Cloudflare Workers Builds 환경변수로 주입)
  */
 export const siteConfig = {
   name: "mangoday",
