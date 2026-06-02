@@ -11,6 +11,13 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // 런타임 환경변수. NEXT_PUBLIC_* 퍼블리셔블 값은 공개용이라 커밋해도 안전.
+  // (supabase.ts 가 process.env[name] 로 동적 접근 → 빌드 인라인이 안 되므로 필요)
+  // 비밀(SUPABASE_SERVICE_ROLE_KEY 등)은 vars 가 아니라 `wrangler secret put` 으로.
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://fpyvigsaogtrophvrcmi.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_OtQRAbhwXar_7LCP-QtEmg_gP_auJOo"
+  },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
