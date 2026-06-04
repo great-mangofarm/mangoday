@@ -55,10 +55,23 @@ export async function getPublishedPosts(
   return (data ?? []) as PostListItem[];
 }
 
+/**
+ * URL 파라미터로 온 슬러그를 DB 저장형(NFC)으로 정규화.
+ * 런타임에 따라 퍼센트 인코딩(raw)으로 오거나 NFD(분해형)로 올 수 있어 둘 다 처리.
+ */
+export function normalizeSlugParam(raw: string): string {
+  let s = raw;
+  try {
+    s = decodeURIComponent(raw);
+  } catch {
+    // 이미 디코딩됐거나 잘못된 인코딩이면 원본 사용
+  }
+  return s.normalize("NFC");
+}
+
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   const supabase = getSupabaseAnon();
-  // 한글 슬러그가 URL을 거치며 NFD(분해형)로 올 수 있어 NFC로 정규화해 매칭
-  const normalized = slug.normalize("NFC");
+  const normalized = normalizeSlugParam(slug);
   const { data, error } = await supabase
     .from("posts")
     .select("*")
