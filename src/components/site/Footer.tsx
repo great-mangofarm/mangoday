@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { siteConfig } from "@/lib/site";
 
 export function Footer() {
@@ -7,7 +8,12 @@ export function Footer() {
         <p>
           © {new Date().getFullYear()} {siteConfig.name}
         </p>
-        <p>블로그 · 일지 · 일정</p>
+        <div className="flex items-center gap-3">
+          <span>블로그 · 일지 · 일정</span>
+          <Link href="/admin" className="text-muted/70 hover:text-foreground">
+            관리자
+          </Link>
+        </div>
       </div>
     </footer>
   );

@@ -110,7 +110,7 @@ NEXT_PUBLIC_SITE_URL=https://mangoday.my-schedule.workers.dev
 NEXT_PUBLIC_SUPABASE_URL=...           # 공개값 (wrangler.jsonc 에도 있음)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...      # 공개값 (publishable)
 SUPABASE_SERVICE_ROLE_KEY=...          # 🔒 비밀! 브라우저/깃 절대 금지
-ADMIN_EMAIL=pushpullandleg@gmail.com
+ADMIN_EMAIL=pushpullandlegs@gmail.com
 AUTH_SECRET=...                        # 🔒 세션 서명용. `openssl rand -base64 32`
 AUTH_GOOGLE_ID=...                     # Google Cloud OAuth client ID
 AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
@@ -150,7 +150,7 @@ AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
    - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`,
      `https://mangoday.my-schedule.workers.dev/api/auth/callback/google`
    - 발급한 Client ID/Secret → `.env.local` 의 `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
-   - OAuth consent screen Test users 에 `pushpullandleg@gmail.com` 추가
+   - OAuth consent screen Test users 에 `pushpullandlegs@gmail.com` 추가
 2. **프로덕션(Cloudflare) 런타임 시크릿** — 관리자를 prod 에서 쓰려면 배포된 Worker 에 설정:
    `wrangler secret put` 으로 `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
    `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAIL`
