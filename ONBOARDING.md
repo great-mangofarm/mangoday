@@ -20,7 +20,7 @@
 | 1 | 데이터 모델 (Supabase) | ✅ 완료 |
 | 2 | 공개 블로그 + 태그 검색 + SEO | ✅ 완료 |
 | 3 | 관리자 + 글쓰기(공개토글) | 🟡 코드 완료, Google 자격증명 대기 |
-| 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | ⬜ |
+| 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | 🟡 Google 동작, Kakao/Naver 자격증명 대기 |
 | 5 | 테마별 일지 (주식/운동) | ⬜ |
 | 6 | 캘린더 (반복·수행체크) | ⬜ |
 | 7 | 대시보드 2종 (ApexCharts) | ⬜ |
@@ -133,13 +133,14 @@ AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
 **인증 방식: Google 로그인만** (사장님 결정). Auth.js 안 씀 — 가벼운 Google OIDC + `jose` 세션 쿠키.
 관리자 = 세션 이메일이 `ADMIN_EMAIL` 과 일치할 때만. BlockNote 에디터, 공개/비공개·상태(초안/발행)·태그·커버, 이미지 업로드까지 구현+검증 완료.
 
-### 구조
-- `src/lib/auth/session.ts` — jose JWT 세션(HttpOnly 쿠키 `mangoday_session`)
-- `src/lib/auth/google.ts` — Google OIDC: 인가 URL, code→token 교환, id_token JWKS 검증
-- `src/lib/auth/dal.ts` — `getAdminSession()` / `requireAdmin()` (관리자 게이트)
+### 구조 (Phase 4에서 멀티-프로바이더로 일반화됨)
+- `src/lib/auth/session.ts` — jose JWT 세션(HttpOnly 쿠키 `mangoday_session`). `UserSession{provider,sub,name,picture?,email?}`
+- `src/lib/auth/providers.ts` — google/kakao/naver 레지스트리(인가URL·프로필 교환). `configuredProviders()`로 env 있는 것만 노출
+- `src/lib/auth/dal.ts` — `getUserSession()`(아무나) / `getAdminSession()`(google+ADMIN_EMAIL) / `requireAdmin()`
 - `src/lib/auth/actions.ts` — `signOut()`
-- `src/app/api/auth/{login,callback/google}/route.ts` — OAuth 라우트 (state CSRF 쿠키)
-- `src/app/admin/login/page.tsx` — 로그인(가드 밖)
+- `src/app/api/auth/login/route.ts` — `?provider=&next=` 로 로그인 시작 (state·next 쿠키)
+- `src/app/api/auth/callback/[provider]/route.ts` — 콜백 공용 (세션 발급)
+- `src/app/admin/login/page.tsx`(Google), `src/app/login/page.tsx`(전체) — `SocialLoginButtons`
 - `src/app/admin/(dashboard)/...` — 가드된 대시보드/에디터 (route group)
 - `src/lib/admin/posts.ts` + `actions.ts` — service role CRUD + slug 중복검사
 - `src/components/admin/PostEditor.tsx` — BlockNote(클라이언트). 본문/커버 이미지 업로드.
@@ -157,3 +158,27 @@ AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
    (또는 대시보드 Worker → Settings → Variables and Secrets). 공개 사이트는 이것 없이도 정상.
 
 > 공개 블로그는 anon 키만 쓰므로 위 시크릿 없이도 동작함. 관리자(/admin)만 영향.
+
+---
+
+## Phase 4 (덧글 + 소셜 로그인) — 코드 완료 🟡
+
+소셜 로그인(Google/Kakao/Naver)으로 댓글 작성. **Google은 동작**, Kakao/Naver는 자격증명 등록 대기.
+글 페이지(`/blog/[slug]`)는 **정적(SSG) 유지** — 댓글은 클라이언트에서 `/api/comments` 로 로드.
+
+### 구조
+- 인증은 Phase 3 의 멀티-프로바이더 구조 그대로 사용(위 참고).
+- `src/lib/comments.ts` — 읽기(anon+RLS visible) / 쓰기·삭제(service role)
+- `src/lib/comments-actions.ts` — `createComment` / `deleteComment` (세션 검증, 본인·관리자만 삭제)
+- `src/app/api/comments/route.ts` — GET 목록 + 뷰어정보(+configuredProviders)
+- `src/components/comments/Comments.tsx` — 클라이언트 댓글 UI(작성/삭제/로그인버튼)
+- DB: `comments` 테이블(0001 마이그레이션). 댓글 본문은 **plain text 로 렌더**(XSS 방지, dangerouslySetInnerHTML 안 씀).
+
+### 🔑 남은 작업 (Kakao / Naver 추가하려면)
+각 개발자 콘솔에서 앱 등록 후 `.env.local` 채우기. 환경변수가 있으면 로그인 버튼이 **자동 노출**됨.
+- **Kakao**: developers.kakao.com → 앱 → REST API 키=`AUTH_KAKAO_ID`, (보안→Client Secret=`AUTH_KAKAO_SECRET`, 선택),
+  카카오 로그인 ON, Redirect URI `…/api/auth/callback/kakao`, 동의항목 닉네임·프로필이미지
+- **Naver**: developers.naver.com → 애플리케이션 등록 → `AUTH_NAVER_ID`/`AUTH_NAVER_SECRET`,
+  Callback URL `…/api/auth/callback/naver`, 제공정보 닉네임·프로필사진
+- redirect/callback 은 로컬(`http://localhost:3000`)·프로덕션(`https://mangoday.my-schedule.workers.dev`) 둘 다 등록.
+- prod 댓글 작성도 위 "프로덕션 런타임 시크릿"(SERVICE_ROLE·AUTH_*) 필요. 댓글 **읽기**는 anon 이라 없이도 됨.

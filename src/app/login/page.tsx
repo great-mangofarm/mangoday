@@ -1,29 +1,26 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { MangoMark } from "@/components/site/MangoMark";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { getAdminSession } from "@/lib/auth/dal";
+import { safeNext } from "@/lib/auth/url";
 
 export const metadata = {
-  title: "관리자 로그인",
+  title: "로그인",
   robots: { index: false, follow: false },
 };
 
 const ERRORS: Record<string, string> = {
-  not_authorized: "이 계정은 관리자가 아니에요. 등록된 관리자 계정으로 로그인해 주세요.",
   invalid_state: "로그인 요청이 만료됐어요. 다시 시도해 주세요.",
-  exchange_failed: "Google 인증에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  exchange_failed: "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  invalid_provider: "지원하지 않는 로그인 수단이에요.",
 };
 
-export default async function AdminLoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const session = await getAdminSession();
-  if (session) redirect("/admin");
-
-  const { error } = await searchParams;
+  const { next: rawNext, error } = await searchParams;
+  const next = safeNext(rawNext);
   const message = error ? (ERRORS[error] ?? "로그인에 실패했어요.") : null;
 
   return (
@@ -34,9 +31,9 @@ export default async function AdminLoginPage({
       </Link>
 
       <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-8 shadow-sm">
-        <h1 className="text-center text-xl font-bold">관리자 로그인</h1>
+        <h1 className="text-center text-xl font-bold">로그인</h1>
         <p className="mt-2 text-center text-sm text-muted">
-          글을 쓰려면 관리자 계정으로 로그인하세요.
+          소셜 계정으로 로그인하고 댓글을 남겨보세요.
         </p>
 
         {message && (
@@ -46,12 +43,12 @@ export default async function AdminLoginPage({
         )}
 
         <div className="mt-6">
-          <SocialLoginButtons next="/admin" only={["google"]} />
+          <SocialLoginButtons next={next} />
         </div>
       </div>
 
-      <Link href="/" className="text-sm text-muted hover:underline">
-        ← 블로그로 돌아가기
+      <Link href={next} className="text-sm text-muted hover:underline">
+        ← 돌아가기
       </Link>
     </main>
   );

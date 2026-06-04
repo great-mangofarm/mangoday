@@ -1,29 +1,43 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { readSession, type AdminSession } from "./session";
+import { readSession, type UserSession } from "./session";
 
 /**
- * Data Access Layer — 관리자 인가(authorization) 중앙화.
- * 세션 이메일이 ADMIN_EMAIL 과 일치할 때만 관리자.
- * 모든 관리자 페이지/서버액션은 requireAdmin() 을 거친다.
+ * Data Access Layer — 세션/인가 중앙화.
+ * - getUserSession: 로그인한 사용자(아무 프로바이더) — 댓글 작성자용
+ * - getAdminSession: Google + ADMIN_EMAIL 일치 시에만 관리자
  */
 
 function adminEmail(): string | undefined {
   return process.env.ADMIN_EMAIL?.trim().toLowerCase();
 }
 
-/** 현재 요청이 관리자면 세션을, 아니면 null. (렌더 패스 내 메모이즈) */
-export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
-  const session = await readSession();
-  if (!session) return null;
-  const admin = adminEmail();
-  if (!admin || session.email.trim().toLowerCase() !== admin) return null;
-  return session;
+/** 로그인한 사용자 세션(아무나). (렌더 패스 내 메모이즈) */
+export const getUserSession = cache(async (): Promise<UserSession | null> => {
+  return readSession();
 });
 
-/** 관리자가 아니면 로그인 페이지로 보낸다. 관리자면 세션 반환. */
-export async function requireAdmin(): Promise<AdminSession> {
+/** 관리자면 세션, 아니면 null. */
+export const getAdminSession = cache(async (): Promise<UserSession | null> => {
+  const session = await getUserSession();
+  if (!session) return null;
+  const admin = adminEmail();
+  const ok =
+    session.provider === "google" &&
+    !!admin &&
+    !!session.email &&
+    session.email.trim().toLowerCase() === admin;
+  return ok ? session : null;
+});
+
+/** 관리자가 아니면 로그인 페이지로. */
+export async function requireAdmin(): Promise<UserSession> {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
   return session;
+}
+
+/** 로그인 안 했으면 null (서버액션에서 인증 확인용). */
+export async function requireUser(): Promise<UserSession | null> {
+  return getUserSession();
 }

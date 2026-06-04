@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getPostBySlug, getPublishedSlugs } from "@/lib/posts";
 import { formatDate } from "@/lib/format";
 import { TagBadge } from "@/components/blog/TagBadge";
+import { Comments } from "@/components/comments/Comments";
 
 export const revalidate = 60;
 // 빌드 시 알려진 slug 외에도 런타임에 첫 방문 시 생성(ISR)
@@ -92,6 +93,8 @@ export default async function BlogDetailPage({ params }: Props) {
       ) : (
         <p className="text-muted">본문이 없습니다.</p>
       )}
+
+      <Comments postId={post.id} slug={slug} />
     </article>
   );
 }
