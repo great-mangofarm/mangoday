@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getPublishedPosts } from "@/lib/posts";
 import { PostCard } from "@/components/blog/PostCard";
 
-// ISR: 60초마다 재생성 (cacheComponents 미사용 — 기존 모델)
-export const revalidate = 60;
+// 요청 시마다 DB 조회 (Cloudflare 정적자산 캐시는 런타임 갱신 불가 → 동적 렌더링)
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const posts = await getPublishedPosts({ limit: 9 });

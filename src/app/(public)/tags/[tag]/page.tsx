@@ -1,19 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getPublishedPosts, getTagCounts } from "@/lib/posts";
+import { getPublishedPosts } from "@/lib/posts";
 import { PostCard } from "@/components/blog/PostCard";
 
-export const revalidate = 60;
-export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ tag: string }>;
 };
-
-export async function generateStaticParams() {
-  const tags = await getTagCounts();
-  return tags.map(({ tag }) => ({ tag: encodeURIComponent(tag) }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tag } = await params;

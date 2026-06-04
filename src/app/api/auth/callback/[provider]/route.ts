@@ -52,7 +52,8 @@ export async function GET(
       redirectUri: `${base}${callbackPath(provider)}`,
       state,
     });
-  } catch {
+  } catch (e) {
+    console.error("[oauth callback]", provider, e);
     return fail("exchange_failed");
   }
 

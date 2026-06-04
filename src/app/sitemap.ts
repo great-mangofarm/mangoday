@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site";
 import { getPublishedPosts, getTagCounts } from "@/lib/posts";
 
-// 1시간마다 사이트맵 재생성
-export const revalidate = 3600;
+// 요청 시 생성 (정적자산 캐시 런타임 갱신 불가 → 동적)
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url.replace(/\/$/, "");

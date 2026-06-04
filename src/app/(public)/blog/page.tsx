@@ -3,7 +3,7 @@ import { getPublishedPosts, getTagCounts } from "@/lib/posts";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagBadge } from "@/components/blog/TagBadge";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "블로그",

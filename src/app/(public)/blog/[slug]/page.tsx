@@ -1,23 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPostBySlug, getPublishedSlugs } from "@/lib/posts";
+import { getPostBySlug } from "@/lib/posts";
 import { formatDate } from "@/lib/format";
 import { TagBadge } from "@/components/blog/TagBadge";
 import { Comments } from "@/components/comments/Comments";
 
-export const revalidate = 60;
-// 빌드 시 알려진 slug 외에도 런타임에 첫 방문 시 생성(ISR)
-export const dynamicParams = true;
+// 요청 시마다 DB 조회 (정적자산 캐시 런타임 갱신 불가 → 동적 렌더링)
+export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
-
-export async function generateStaticParams() {
-  const slugs = await getPublishedSlugs("blog");
-  return slugs.map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
