@@ -47,7 +47,7 @@ export async function getPublishedPosts(
     .order("published_at", { ascending: false, nullsFirst: false });
 
   if (opts.kind) query = query.eq("kind", opts.kind);
-  if (opts.tag) query = query.contains("tags", [opts.tag]);
+  if (opts.tag) query = query.contains("tags", [opts.tag.normalize("NFC")]);
   if (opts.limit) query = query.limit(opts.limit);
 
   const { data, error } = await query;
@@ -57,10 +57,12 @@ export async function getPublishedPosts(
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   const supabase = getSupabaseAnon();
+  // 한글 슬러그가 URL을 거치며 NFD(분해형)로 올 수 있어 NFC로 정규화해 매칭
+  const normalized = slug.normalize("NFC");
   const { data, error } = await supabase
     .from("posts")
     .select("*")
-    .eq("slug", slug)
+    .eq("slug", normalized)
     .eq("status", "published")
     .eq("is_public", true)
     .maybeSingle();
