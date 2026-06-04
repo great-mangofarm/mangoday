@@ -19,7 +19,7 @@
 | 0 | 프로젝트 세팅 | ✅ 완료 |
 | 1 | 데이터 모델 (Supabase) | ✅ 완료 |
 | 2 | 공개 블로그 + 태그 검색 + SEO | ✅ 완료 |
-| 3 | 관리자 + 글쓰기(공개토글) | ⬜ 다음 차례 |
+| 3 | 관리자 + 글쓰기(공개토글) | 🟡 코드 완료, Google 자격증명 대기 |
 | 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | ⬜ |
 | 5 | 테마별 일지 (주식/운동) | ⬜ |
 | 6 | 캘린더 (반복·수행체크) | ⬜ |
@@ -111,7 +111,10 @@ NEXT_PUBLIC_SUPABASE_URL=...           # 공개값 (wrangler.jsonc 에도 있음
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...      # 공개값 (publishable)
 SUPABASE_SERVICE_ROLE_KEY=...          # 🔒 비밀! 브라우저/깃 절대 금지
 ADMIN_EMAIL=pushpullandleg@gmail.com
-# AUTH_* (Phase 3~4), VAPID_* (Phase 8) 은 해당 Phase에서 채움
+AUTH_SECRET=...                        # 🔒 세션 서명용. `openssl rand -base64 32`
+AUTH_GOOGLE_ID=...                     # Google Cloud OAuth client ID
+AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
+# AUTH_KAKAO_*, AUTH_NAVER_* (Phase 4), VAPID_* (Phase 8) 은 해당 Phase에서 채움
 ```
 
 ---
@@ -125,10 +128,32 @@ ADMIN_EMAIL=pushpullandleg@gmail.com
 
 ---
 
-## 다음 작업: Phase 3 (관리자 + 글쓰기)
+## Phase 3 (관리자 + 글쓰기) — 코드 완료 🟡
 
-- `ADMIN_EMAIL`(pushpullandleg@gmail.com) 만 글을 쓸 수 있는 관리자 화면.
-- 인증 방식 **아직 미결정** — 옵션: (a) Google만 / (b) Google+Kakao+Naver / (c) 임시 비밀번호 게이트. 사장님께 먼저 물어볼 것.
-- BlockNote 에디터, 글당 공개/비공개 토글, 태그 입력, 이미지 업로드.
+**인증 방식: Google 로그인만** (사장님 결정). Auth.js 안 씀 — 가벼운 Google OIDC + `jose` 세션 쿠키.
+관리자 = 세션 이메일이 `ADMIN_EMAIL` 과 일치할 때만. BlockNote 에디터, 공개/비공개·상태(초안/발행)·태그·커버, 이미지 업로드까지 구현+검증 완료.
 
-> 작업 시작 전 사장님께 인증 방식부터 확인할 것. 그리고 시각적 결과물은 적용/커밋 전에 먼저 보여드릴 것(이전 피드백).
+### 구조
+- `src/lib/auth/session.ts` — jose JWT 세션(HttpOnly 쿠키 `mangoday_session`)
+- `src/lib/auth/google.ts` — Google OIDC: 인가 URL, code→token 교환, id_token JWKS 검증
+- `src/lib/auth/dal.ts` — `getAdminSession()` / `requireAdmin()` (관리자 게이트)
+- `src/lib/auth/actions.ts` — `signOut()`
+- `src/app/api/auth/{login,callback/google}/route.ts` — OAuth 라우트 (state CSRF 쿠키)
+- `src/app/admin/login/page.tsx` — 로그인(가드 밖)
+- `src/app/admin/(dashboard)/...` — 가드된 대시보드/에디터 (route group)
+- `src/lib/admin/posts.ts` + `actions.ts` — service role CRUD + slug 중복검사
+- `src/components/admin/PostEditor.tsx` — BlockNote(클라이언트). 본문/커버 이미지 업로드.
+- `src/app/api/admin/upload/route.ts` — 이미지 업로드 → Supabase Storage **공개 버킷 `post-images`**
+
+### 🔑 남은 작업 (사용하려면)
+1. **Google OAuth 자격증명 발급** (console.cloud.google.com → OAuth client ID, Web).
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`,
+     `https://mangoday.my-schedule.workers.dev/api/auth/callback/google`
+   - 발급한 Client ID/Secret → `.env.local` 의 `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
+   - OAuth consent screen Test users 에 `pushpullandleg@gmail.com` 추가
+2. **프로덕션(Cloudflare) 런타임 시크릿** — 관리자를 prod 에서 쓰려면 배포된 Worker 에 설정:
+   `wrangler secret put` 으로 `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAIL`
+   (또는 대시보드 Worker → Settings → Variables and Secrets). 공개 사이트는 이것 없이도 정상.
+
+> 공개 블로그는 anon 키만 쓰므로 위 시크릿 없이도 동작함. 관리자(/admin)만 영향.
