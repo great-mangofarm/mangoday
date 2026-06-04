@@ -19,15 +19,16 @@
 | 0 | 프로젝트 세팅 | ✅ 완료 |
 | 1 | 데이터 모델 (Supabase) | ✅ 완료 |
 | 2 | 공개 블로그 + 태그 검색 + SEO | ✅ 완료 |
-| 3 | 관리자 + 글쓰기(공개토글) | 🟡 코드 완료, Google 자격증명 대기 |
-| 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | 🟡 Google 동작, Kakao/Naver 자격증명 대기 |
-| 5 | 테마별 일지 (주식/운동) | ⬜ |
+| 3 | 관리자 + 글쓰기(공개토글) | ✅ 배포·동작 (Google 로그인) |
+| 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | 🟡 Google·Kakao 동작 / Naver·대댓글 미구현 |
+| 5 | 테마별 일지 (주식/운동) | ⬜ 다음 후보 |
 | 6 | 캘린더 (반복·수행체크) | ⬜ |
 | 7 | 대시보드 2종 (ApexCharts) | ⬜ |
 | 8 | 알림 + PWA | ⬜ |
-| 9 | 도메인 연결 + 배포 마무리 | ⬜ |
+| 9 | 도메인 연결 + 배포 마무리 | 🟡 mangoday.blog 연결됨, SEO/SITE_URL·Google redirect 마무리 남음 |
 
-**라이브 사이트:** https://mangoday.my-schedule.workers.dev (Phase 2까지 배포됨, 모든 라우트 200)
+**라이브 사이트:** https://mangoday.my-schedule.workers.dev (그리고 https://mangoday.blog — 둘 다 동작)
+Phase 3·4까지 prod 배포 완료. 공개 페이지는 **동적 렌더링**(아래 "배포·캐시" 참고).
 
 ---
 
@@ -65,10 +66,28 @@
 - 진행상황: Cloudflare 대시보드 → Workers & Pages → mangoday → **Deployments** 탭
 - 로컬에서 직접 배포도 가능: `npm run deploy`
 
-### 빌드 환경변수
-`NEXT_PUBLIC_SITE_URL` 은 **빌드 시점에 코드에 인라인**되는 값이다(`src/lib/site.ts`).
-`.env.local` 은 gitignore라 Cloudflare 빌드에 안 들어가므로, **Cloudflare Workers Builds 설정의 "Variables and secrets"** 에 `NEXT_PUBLIC_SITE_URL` 을 등록해 둠.
-런타임용 Supabase 공개키 2개는 `wrangler.jsonc` 의 `vars` 에 들어있음(공개 가능값이라 커밋 OK).
+### 렌더링·캐시 (중요 — 함정 주의)
+- OpenNext 의 **static-assets incremental-cache** 는 **런타임 ISR 갱신/revalidate 가 안 됨** → 배포 시점에 페이지가 굳음.
+- 그래서 공개 콘텐츠 페이지(`/`, `/blog`, `/blog/[slug]`, `/tags/[tag]`, `sitemap`)를 **`export const dynamic = "force-dynamic"`** 로 두고 **요청마다 DB 조회**한다. (새 글이 즉시 반영됨)
+- 추후 트래픽 늘면 **R2 incremental-cache**(`open-next.config.ts` + R2 버킷 바인딩)로 바꿔 ISR 복구 가능.
+- **한글 슬러그/태그**는 URL에서 퍼센트 인코딩/NFD 로 와서 DB(NFC)와 안 맞을 수 있음 → `normalizeSlugParam()`(decode+NFC)로 처리. (`src/lib/posts.ts`)
+
+### 빌드 환경변수 (Workers Builds → Settings → Build → Variables and secrets)
+빌드 때 정적/동적 페이지가 DB를 읽거나 값을 인라인하므로 **빌드 환경에도** 필요. 모두 등록 완료:
+- `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- ⚠️ 빠지면 `next build` 가 "환경변수 … 설정되지 않았습니다" 로 **빌드 실패**함(겪었던 이슈).
+
+### 런타임 시크릿 (배포된 Worker, `wrangler secret put` 으로 등록 완료)
+관리자 로그인·글쓰기·댓글작성에 필요. prod 에 이미 등록됨:
+`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_KAKAO_ID`, `AUTH_KAKAO_SECRET`,
+`SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_EMAIL`. (secret 은 재배포해도 유지됨)
+- Supabase 공개키 2개는 `wrangler.jsonc` `vars` 에 있음(런타임, 커밋 OK).
+
+### 커스텀 도메인
+`mangoday.blog` 가 Cloudflare Custom Domain 으로 Worker 에 연결됨(루트 도메인). 둘 다 라이브:
+`mangoday.my-schedule.workers.dev`, `mangoday.blog`.
+- ⬜ **남음**: Google Console 에 `https://mangoday.blog/api/auth/callback/google` redirect URI 추가(없으면 그 도메인에서 Google 로그인만 mismatch). 카카오는 등록됨.
+- ⬜ (선택) `NEXT_PUBLIC_SITE_URL` 을 `https://mangoday.blog` 로 바꿔 SEO(canonical/sitemap/OG) 최종화 후 재배포.
 
 ---
 
@@ -161,10 +180,10 @@ AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
 
 ---
 
-## Phase 4 (덧글 + 소셜 로그인) — 코드 완료 🟡
+## Phase 4 (덧글 + 소셜 로그인) — 배포·동작 🟡
 
-소셜 로그인(Google/Kakao/Naver)으로 댓글 작성. **Google은 동작**, Kakao/Naver는 자격증명 등록 대기.
-글 페이지(`/blog/[slug]`)는 **정적(SSG) 유지** — 댓글은 클라이언트에서 `/api/comments` 로 로드.
+소셜 로그인으로 댓글 작성. **Google·Kakao 동작**(로컬+prod), **Naver 미구현**.
+글 페이지(`/blog/[slug]`)는 **동적 렌더링**(force-dynamic) — 댓글은 클라이언트에서 `/api/comments` 로 로드.
 
 ### 구조
 - 인증은 Phase 3 의 멀티-프로바이더 구조 그대로 사용(위 참고).
@@ -172,13 +191,14 @@ AUTH_GOOGLE_SECRET=...                 # 🔒 Google OAuth client secret
 - `src/lib/comments-actions.ts` — `createComment` / `deleteComment` (세션 검증, 본인·관리자만 삭제)
 - `src/app/api/comments/route.ts` — GET 목록 + 뷰어정보(+configuredProviders)
 - `src/components/comments/Comments.tsx` — 클라이언트 댓글 UI(작성/삭제/로그인버튼)
-- DB: `comments` 테이블(0001 마이그레이션). 댓글 본문은 **plain text 로 렌더**(XSS 방지, dangerouslySetInnerHTML 안 씀).
+- DB: `comments` 테이블(0001 마이그레이션, `parent_id`·`status` 보유). 본문은 **plain text 렌더**(XSS 방지).
 
-### 🔑 남은 작업 (Kakao / Naver 추가하려면)
-각 개발자 콘솔에서 앱 등록 후 `.env.local` 채우기. 환경변수가 있으면 로그인 버튼이 **자동 노출**됨.
-- **Kakao**: developers.kakao.com → 앱 → REST API 키=`AUTH_KAKAO_ID`, (보안→Client Secret=`AUTH_KAKAO_SECRET`, 선택),
-  카카오 로그인 ON, Redirect URI `…/api/auth/callback/kakao`, 동의항목 닉네임·프로필이미지
-- **Naver**: developers.naver.com → 애플리케이션 등록 → `AUTH_NAVER_ID`/`AUTH_NAVER_SECRET`,
-  Callback URL `…/api/auth/callback/naver`, 제공정보 닉네임·프로필사진
-- redirect/callback 은 로컬(`http://localhost:3000`)·프로덕션(`https://mangoday.my-schedule.workers.dev`) 둘 다 등록.
-- prod 댓글 작성도 위 "프로덕션 런타임 시크릿"(SERVICE_ROLE·AUTH_*) 필요. 댓글 **읽기**는 anon 이라 없이도 됨.
+### 미구현 / 남은 작업
+- ⬜ **대댓글(답글) 기능 — 미구현. 추후 개발 필요.**
+  - 스키마 변경 불필요(`comments.parent_id` 이미 있음). 작업: `createComment`에 parentId 인자 추가 +
+    `Comments.tsx`에 "답글" 폼/버튼 + 1depth 트리 렌더 + GET 응답에 parent_id 포함.
+- ⬜ 관리자 **숨김(hidden)** 모더레이션 — 현재 삭제만 됨. `status='hidden'` 토글 추후.
+- ⬜ **Naver 로그인**: developers.naver.com → 앱 등록 → `AUTH_NAVER_ID`/`AUTH_NAVER_SECRET`,
+  Callback `…/api/auth/callback/naver` (localhost·workers.dev·mangoday.blog 모두). env 넣으면 버튼 자동 노출.
+- ✅ Kakao: REST API 키=`AUTH_KAKAO_ID`, Client Secret=`AUTH_KAKAO_SECRET` (.env.local + prod secret 등록 완료),
+  Redirect URI는 **REST API 키 설정 화면의 "카카오 로그인 리다이렉트 URI"** 에 등록(콘솔 위치 헷갈림 주의).
