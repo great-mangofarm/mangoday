@@ -21,14 +21,21 @@
 | 2 | 공개 블로그 + 태그 검색 + SEO | ✅ 완료 |
 | 3 | 관리자 + 글쓰기(공개토글) | ✅ 배포·동작 (Google 로그인) |
 | 4 | 덧글 (소셜 로그인: Naver/Kakao/Google) | 🟡 Google·Kakao 동작 / Naver·대댓글 미구현 |
-| 5 | 테마별 일지 (주식/운동) | ⬜ 다음 후보 |
-| 6 | 캘린더 (반복·수행체크) | ⬜ |
-| 7 | 대시보드 2종 (ApexCharts) | ⬜ |
-| 8 | 알림 + PWA | ⬜ |
-| 9 | 도메인 연결 + 배포 마무리 | 🟡 mangoday.blog 연결됨, SEO/SITE_URL·Google redirect 마무리 남음 |
+| 5 | 테마별 일지 (주식/운동) | ✅ 배포·동작 |
+| 6 | 캘린더 (반복·수행체크) | ✅ 배포·동작 |
+| 7 | 대시보드 2종 (ApexCharts) | ✅ 배포·동작 |
+| 8 | 알림(웹푸시) + PWA | ✅ 동작 (자동알림 크론만 연결하면 됨) |
+| 9 | 도메인 연결 + 정식 배포 | ✅ mangoday.blog 라이브, SEO/SITE_URL 최종화 |
 
-**라이브 사이트:** https://mangoday.my-schedule.workers.dev (그리고 https://mangoday.blog — 둘 다 동작)
-Phase 3·4까지 prod 배포 완료. 공개 페이지는 **동적 렌더링**(아래 "배포·캐시" 참고).
+**라이브 사이트:** https://mangoday.blog (그리고 https://mangoday.my-schedule.workers.dev — 둘 다 동작)
+전 페이즈 prod 배포 완료. 공개 페이지는 **동적 렌더링**(아래 "배포·캐시" 참고).
+
+### 남은 백로그 (개선/선택)
+- ⬜ **대댓글(답글)** — Phase 4 섹션 참고 (스키마 준비됨)
+- ⬜ **네이버 로그인** — `AUTH_NAVER_*` 넣으면 버튼 자동 노출
+- ⬜ **자동 알림 크론** — `GET /api/push/run?secret=$PUSH_CRON_SECRET` 를 주기 호출(cron-job.org 등). 안 하면 "테스트 알림"만 수동.
+- ⬜ **Google OAuth 앱 게시** — Testing→Production. 해야 본인 외 방문자도 구글로 댓글 로그인. (지금은 Test users만)
+- ⬜ 관리자 댓글 "숨김" 모더레이션 / 오프라인 캐싱(현재 설치 위주)
 
 ---
 
