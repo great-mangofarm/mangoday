@@ -20,6 +20,7 @@ export interface SaveEventPayload {
   endTime: string; // HH:MM ("" 면 없음)
   isPublic: boolean;
   isTask: boolean;
+  notify: boolean; // 시작 시각에 푸시 알림
   color: string; // "" 가능
   freq: Freq;
   interval: number;
@@ -65,6 +66,8 @@ export async function saveEvent(
     is_task: p.isTask,
     recurrence,
     color: p.color || null,
+    notify_at: p.notify ? start_at : null,
+    notified: false, // 저장 시 재무장
   };
 
   const sb = getSupabaseAdmin();

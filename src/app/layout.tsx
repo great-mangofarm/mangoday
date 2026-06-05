@@ -1,7 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { siteConfig } from "@/lib/site";
+import { RegisterSW } from "@/components/pwa/RegisterSW";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#f59e0b",
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +38,11 @@ export const metadata: Metadata = {
     title: siteConfig.title,
     description: siteConfig.description,
   },
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.name,
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
@@ -47,6 +57,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
+        <RegisterSW />
       </body>
     </html>
   );

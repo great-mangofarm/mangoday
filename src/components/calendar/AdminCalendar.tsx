@@ -180,6 +180,7 @@ function EventDialog({
   );
   const [isPublic, setIsPublic] = useState(event?.is_public ?? true);
   const [isTask, setIsTask] = useState(event?.is_task ?? false);
+  const [notify, setNotify] = useState(event?.notify_at != null);
   const [color, setColor] = useState(event?.color ?? COLORS[0]);
   const [freq, setFreq] = useState<Freq>(r?.freq ?? "none");
   const [interval, setInterval] = useState(r?.interval ?? 1);
@@ -201,6 +202,7 @@ function EventDialog({
       endTime,
       isPublic,
       isTask,
+      notify,
       color,
       freq,
       interval,
@@ -331,6 +333,10 @@ function EventDialog({
             <label className="flex items-center gap-1.5 text-sm">
               <input type="checkbox" checked={isTask} onChange={(e) => setIsTask(e.target.checked)} className="accent-primary-500" />
               할일(수행체크)
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} className="accent-primary-500" />
+              알림
             </label>
           </div>
 
