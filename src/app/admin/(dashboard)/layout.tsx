@@ -27,6 +27,11 @@ export default async function AdminLayout({
             </span>
           </Link>
 
+          <nav className="hidden items-center gap-4 text-sm sm:flex">
+            <Link href="/admin" className="text-muted hover:text-foreground">글</Link>
+            <Link href="/admin/calendar" className="text-muted hover:text-foreground">캘린더</Link>
+          </nav>
+
           <div className="flex items-center gap-3">
             <Link
               href="/"
