@@ -39,6 +39,51 @@
 
 ---
 
+## 🧭 작업 히스토리 & 주요 결정
+
+페이즈별로 **무엇을 / 어떻게 / 막혔다가 어떻게 풀었는지**. 다시 손댈 때 맥락용.
+
+### Phase 0~2 — 기반 + 공개 블로그
+- create-next-app(Next 16/Tailwind v4)로 시작. AGENTS.md 규칙: "이건 네가 아는 Next가 아니다" → 코드 전에 `node_modules/next/dist/docs/` 확인.
+- Supabase 스키마(posts/comments/calendar_events/event_completions/push_subscriptions) + RLS(공개글만 읽기, 쓰기는 service_role).
+- 브랜드색을 amber로 잡는데 TailGrids 토큰이 파랑이라 `globals.css @theme`에서 amber 스케일로 교체. 히어로 배너는 "후지다"고 제거.
+
+### Phase 3 — 관리자 + 글쓰기
+- **결정: Auth.js 대신 가벼운 Google OIDC + `jose` 세션 쿠키.** 관리자 1명뿐이라 Auth.js가 과하고, Next16/Workers 호환 리스크 회피. 관리자 = 세션 이메일 == `ADMIN_EMAIL`.
+- BlockNote 에디터, service_role로 글 CRUD, 이미지는 Supabase Storage 공개 버킷.
+- **함정**: `middleware.ts`가 Next16에선 `proxy.ts`로 이름 바뀜(문서에서 확인). 그래서 게이트는 미들웨어 말고 페이지/DAL에서.
+
+### Phase 4 — 댓글 + 소셜 로그인
+- 인증을 **멀티 프로바이더로 일반화**(google/kakao/naver 레지스트리). `configuredProviders()`로 env 있는 것만 버튼 노출 → 카카오/네이버는 키 넣으면 자동 등장.
+- 글 페이지는 정적 유지하려고 댓글을 클라이언트(`/api/comments`)에서 로드.
+- **카카오 삽질**: 콘솔 UI가 자주 바껴서 Redirect URI 위치를 한참 헤맴 → 결국 **플랫폼키 > REST API 키 설정**에 있었음. `KOE205`=동의항목 미설정(닉네임/프로필 켜야), `KOE010`=Client Secret 켜놓고 안 보냄 → 시크릿 등록으로 해결.
+
+### Phase 5 — 테마별 일지
+- posts 재사용(kind=stock/workout) + `data` jsonb에 일지값(주식 pnl/tickers, 운동 exercises). 손익 색은 **한국식(빨강=이익/파랑=손실)**.
+- **함정**: BlockNote가 SSR에서 `window` 참조로 터짐 → `PostEditorLoader`로 `dynamic(ssr:false)` 클라이언트 로드.
+
+### Phase 6 — 캘린더
+- 날짜를 **KST 기준 문자열**로 다뤄 서버(UTC) 드리프트 방지. 반복 전개는 보이는 달 범위에서 날짜별 판정. 순수로직(`calendar-core`)/서버데이터(`calendar`) 분리 → 클라이언트 번들에 service_role 안 새게.
+
+### Phase 7 — 대시보드
+- ApexCharts도 SSR 이슈 → `ApexChart` 래퍼로 ssr:false. `runMaskReveal(null)` 콘솔에러는 등장 애니메이션 끄기로 제거.
+
+### Phase 8 — 알림 + PWA
+- **결정: `web-push`(Node 전용)가 Workers에서 안 돌아감 → 직접 구현.** jose ES256 VAPID + RFC8291 aes128gcm을 **Web Crypto**로. 실제 기기에서 알림 수신 확인 = 암호화 정상.
+- PWA: manifest + sw.js(push/click/install).
+
+### Phase 9 — 정식 배포
+- mangoday.blog를 Cloudflare Custom Domain으로 연결, `NEXT_PUBLIC_SITE_URL`을 그 도메인으로.
+
+### 배포·인프라에서 겪은 큰 함정 (재발 주의)
+- **자동배포 실패**: Cloudflare 빌드 환경에 `NEXT_PUBLIC_SUPABASE_*` 빌드변수 누락 → `next build`가 "환경변수 미설정"으로 실패. 빌드변수 추가로 해결. (로컬은 `.env.local` 있어서 안 겪음)
+- **로그아웃하면 글이 안 보임**: OpenNext **static-assets incremental-cache는 런타임 ISR 갱신 불가** → 배포시점에 페이지가 굳음. 공개 페이지를 **force-dynamic**으로 전환해 해결. (트래픽 늘면 R2 캐시로 ISR 복구 가능)
+- **한글 슬러그 상세 404**: URL 파라미터가 퍼센트인코딩/NFD로 도착 → DB(NFC)와 불일치. `normalizeSlugParam`(decode+NFC)로 해결.
+- **macOS Documents 권한(TCC)**: 세션 중 프로젝트가 `~/Documents` 아래라 파일 접근이 끊긴 적 있음 → 앱 재시작으로 복구. (가능하면 프로젝트를 Documents 밖으로 옮기면 예방)
+- GitHub 다계정: 레포 소유자 `great-mangofarm`, SSH 별칭 `github-new` 사용.
+
+---
+
 ## 기술 스택
 
 - **Next.js 16.x** (App Router, Turbopack) + React 19 + TypeScript
