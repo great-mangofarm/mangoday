@@ -88,7 +88,7 @@ export default async function BlogDetailPage({ params }: Props) {
         <p className="text-muted">본문이 없습니다.</p>
       )}
 
-      <Comments postId={post.id} slug={slug} />
+      <Comments postId={post.id} path={`/blog/${slug}`} />
     </article>
   );
 }

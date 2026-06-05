@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/dal";
 import { getPostById } from "@/lib/admin/posts";
-import { PostEditor } from "@/components/admin/PostEditor";
+import { PostEditorLoader } from "@/components/admin/PostEditorLoader";
 
 export default async function EditPostPage({
   params,
@@ -19,7 +19,7 @@ export default async function EditPostPage({
       <Link href="/admin" className="text-sm text-muted hover:underline">
         ← 목록
       </Link>
-      <PostEditor
+      <PostEditorLoader
         initial={{
           id: post.id,
           kind: post.kind,
@@ -32,6 +32,7 @@ export default async function EditPostPage({
           isPublic: post.is_public,
           entryDate: post.entry_date,
           contentJson: post.content_json,
+          data: (post.data ?? {}) as Record<string, unknown>,
         }}
       />
     </div>

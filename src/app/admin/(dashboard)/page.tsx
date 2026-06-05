@@ -24,12 +24,26 @@ export default async function AdminDashboardPage() {
             {posts.filter((p) => p.status === "published" && p.is_public).length}개
           </p>
         </div>
-        <Link
-          href="/admin/posts/new"
-          className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600"
-        >
-          + 새 글 쓰기
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/posts/new"
+            className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-600"
+          >
+            + 새 글
+          </Link>
+          <Link
+            href="/admin/posts/new?kind=stock"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold transition hover:bg-surface"
+          >
+            + 주식일지
+          </Link>
+          <Link
+            href="/admin/posts/new?kind=workout"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-semibold transition hover:bg-surface"
+          >
+            + 운동일지
+          </Link>
+        </div>
       </div>
 
       {posts.length === 0 ? (

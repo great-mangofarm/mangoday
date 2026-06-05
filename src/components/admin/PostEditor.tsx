@@ -10,6 +10,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { savePost, removePost } from "@/lib/admin/actions";
 import { slugify } from "@/lib/slug";
 import type { PostKind } from "@/lib/posts";
+import type { WorkoutExercise } from "@/lib/journal";
 
 /** 파일을 관리자 업로드 API 로 보내 공개 URL 을 받는다. */
 async function uploadToStorage(file: File): Promise<string> {
@@ -36,6 +37,7 @@ export interface EditorInitial {
   isPublic: boolean;
   entryDate: string | null;
   contentJson: unknown;
+  data: Record<string, unknown>;
 }
 
 export function PostEditor({ initial }: { initial: EditorInitial }) {
@@ -53,6 +55,23 @@ export function PostEditor({ initial }: { initial: EditorInitial }) {
   const [isPublic, setIsPublic] = useState(initial.isPublic);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 일지 전용 상태
+  const initData = (initial.data ?? {}) as {
+    pnl?: number;
+    tickers?: string[];
+    exercises?: WorkoutExercise[];
+  };
+  const [entryDate, setEntryDate] = useState(initial.entryDate ?? "");
+  const [stockPnl, setStockPnl] = useState(
+    initData.pnl != null ? String(initData.pnl) : "",
+  );
+  const [stockTickers, setStockTickers] = useState(
+    (initData.tickers ?? []).join(", "),
+  );
+  const [exercises, setExercises] = useState<WorkoutExercise[]>(
+    initData.exercises ?? [],
+  );
 
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -91,6 +110,27 @@ export function PostEditor({ initial }: { initial: EditorInitial }) {
     setError(null);
     setMessage(null);
     const html = await editor.blocksToHTMLLossy(editor.document);
+
+    let data: Record<string, unknown> = {};
+    if (kind === "stock") {
+      data = {
+        pnl: stockPnl.trim() ? Number(stockPnl) : 0,
+        tickers: stockTickers.split(",").map((t) => t.trim()).filter(Boolean),
+      };
+    } else if (kind === "workout") {
+      data = {
+        exercises: exercises
+          .map((e) => ({
+            name: e.name.trim(),
+            sets: e.sets.map((s) => ({
+              weight: Number(s.weight) || 0,
+              reps: Number(s.reps) || 0,
+            })),
+          }))
+          .filter((e) => e.name),
+      };
+    }
+
     const payload = {
       id: initial.id,
       kind,
@@ -101,9 +141,10 @@ export function PostEditor({ initial }: { initial: EditorInitial }) {
       tags: tagsText.split(",").map((t) => t.trim()).filter(Boolean),
       status,
       isPublic,
-      entryDate: initial.entryDate,
+      entryDate: kind === "blog" ? null : entryDate || null,
       contentJson: editor.document,
       contentHtml: html,
+      data,
     };
     startTransition(async () => {
       const res = await savePost(payload);
@@ -193,6 +234,43 @@ export function PostEditor({ initial }: { initial: EditorInitial }) {
             <option value="workout">운동 일지</option>
           </select>
         </Field>
+
+        {kind !== "blog" && (
+          <Field label="일지 날짜">
+            <input
+              type="date"
+              value={entryDate}
+              onChange={(e) => setEntryDate(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </Field>
+        )}
+
+        {kind === "stock" && (
+          <>
+            <Field label="실현 손익 (원)">
+              <input
+                type="number"
+                value={stockPnl}
+                onChange={(e) => setStockPnl(e.target.value)}
+                placeholder="예: 120000 또는 -50000"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </Field>
+            <Field label="종목 (쉼표로 구분)">
+              <input
+                value={stockTickers}
+                onChange={(e) => setStockTickers(e.target.value)}
+                placeholder="삼성전자, TSLA"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </Field>
+          </>
+        )}
+
+        {kind === "workout" && (
+          <WorkoutFields exercises={exercises} setExercises={setExercises} />
+        )}
 
         <Field label="상태">
           <div className="flex gap-2">
@@ -316,5 +394,128 @@ function Field({
       <span className="text-xs font-semibold text-muted">{label}</span>
       {children}
     </div>
+  );
+}
+
+function WorkoutFields({
+  exercises,
+  setExercises,
+}: {
+  exercises: WorkoutExercise[];
+  setExercises: (next: WorkoutExercise[]) => void;
+}) {
+  const volume = exercises.reduce(
+    (sum, e) =>
+      sum +
+      e.sets.reduce((s, set) => s + (Number(set.weight) || 0) * (Number(set.reps) || 0), 0),
+    0,
+  );
+
+  const update = (next: WorkoutExercise[]) => setExercises(next);
+  const addExercise = () =>
+    update([...exercises, { name: "", sets: [{ weight: 0, reps: 0 }] }]);
+  const removeExercise = (i: number) =>
+    update(exercises.filter((_, idx) => idx !== i));
+  const setName = (i: number, name: string) =>
+    update(exercises.map((e, idx) => (idx === i ? { ...e, name } : e)));
+  const addSet = (i: number) =>
+    update(
+      exercises.map((e, idx) =>
+        idx === i ? { ...e, sets: [...e.sets, { weight: 0, reps: 0 }] } : e,
+      ),
+    );
+  const removeSet = (i: number, j: number) =>
+    update(
+      exercises.map((e, idx) =>
+        idx === i ? { ...e, sets: e.sets.filter((_, k) => k !== j) } : e,
+      ),
+    );
+  const setField = (
+    i: number,
+    j: number,
+    field: "weight" | "reps",
+    value: number,
+  ) =>
+    update(
+      exercises.map((e, idx) =>
+        idx === i
+          ? {
+              ...e,
+              sets: e.sets.map((s, k) => (k === j ? { ...s, [field]: value } : s)),
+            }
+          : e,
+      ),
+    );
+
+  return (
+    <Field label={`운동 (총 볼륨 ${volume.toLocaleString("ko-KR")}kg)`}>
+      <div className="flex flex-col gap-3">
+        {exercises.map((ex, i) => (
+          <div key={i} className="rounded-lg border border-border p-2.5">
+            <div className="flex gap-2">
+              <input
+                value={ex.name}
+                onChange={(e) => setName(i, e.target.value)}
+                placeholder="운동명 (예: 벤치프레스)"
+                className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => removeExercise(i)}
+                className="shrink-0 rounded-md px-2 text-xs text-muted hover:text-red-600"
+              >
+                삭제
+              </button>
+            </div>
+            <div className="mt-2 flex flex-col gap-1.5">
+              {ex.sets.map((set, j) => (
+                <div key={j} className="flex items-center gap-1.5 text-sm">
+                  <span className="w-8 text-xs text-muted">{j + 1}세트</span>
+                  <input
+                    type="number"
+                    value={set.weight || ""}
+                    onChange={(e) => setField(i, j, "weight", Number(e.target.value))}
+                    placeholder="kg"
+                    className="w-16 rounded-md border border-border bg-background px-2 py-1"
+                  />
+                  <span className="text-xs text-muted">kg ×</span>
+                  <input
+                    type="number"
+                    value={set.reps || ""}
+                    onChange={(e) => setField(i, j, "reps", Number(e.target.value))}
+                    placeholder="회"
+                    className="w-14 rounded-md border border-border bg-background px-2 py-1"
+                  />
+                  <span className="text-xs text-muted">회</span>
+                  {ex.sets.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSet(i, j)}
+                      className="ml-auto text-xs text-muted hover:text-red-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addSet(i)}
+                className="self-start text-xs font-medium text-primary-600 hover:underline"
+              >
+                + 세트 추가
+              </button>
+            </div>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addExercise}
+          className="rounded-lg border border-dashed border-border py-2 text-sm font-medium text-muted hover:bg-surface"
+        >
+          + 운동 추가
+        </button>
+      </div>
+    </Field>
   );
 }

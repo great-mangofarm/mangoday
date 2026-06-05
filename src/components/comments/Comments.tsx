@@ -32,14 +32,14 @@ const LOGIN_STYLE: Record<string, string> = {
   naver: "bg-[#03C75A] text-white hover:brightness-95",
 };
 
-export function Comments({ postId, slug }: { postId: string; slug: string }) {
+export function Comments({ postId, path }: { postId: string; path: string }) {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const next = `/blog/${slug}`;
+  const next = path;
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/comments?postId=${postId}`, { cache: "no-store" });

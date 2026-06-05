@@ -19,6 +19,7 @@ export interface AdminPostRow {
   status: "draft" | "published";
   is_public: boolean;
   entry_date: string | null;
+  data: Record<string, unknown>;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -62,6 +63,8 @@ export interface PostInput {
   status: "draft" | "published";
   is_public: boolean;
   entry_date: string | null;
+  /** 일지 전용 구조화 데이터(주식 pnl/tickers, 운동 exercises 등). 블로그는 {} */
+  data: Record<string, unknown>;
 }
 
 /** published 로 전환되는 순간 published_at 을 채운다(최초 1회). */

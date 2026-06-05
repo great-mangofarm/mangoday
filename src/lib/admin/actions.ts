@@ -25,6 +25,8 @@ export interface SavePostPayload {
   entryDate: string | null;
   contentJson: unknown;
   contentHtml: string;
+  /** 일지 전용 구조화 데이터 (블로그는 {}) */
+  data?: Record<string, unknown>;
 }
 
 export interface SaveResult {
@@ -69,6 +71,7 @@ export async function savePost(payload: SavePostPayload): Promise<SaveResult> {
     status: payload.status,
     is_public: payload.isPublic,
     entry_date: payload.entryDate,
+    data: payload.data ?? {},
   };
 
   try {

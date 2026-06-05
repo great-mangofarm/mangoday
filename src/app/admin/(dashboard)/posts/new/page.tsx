@@ -1,17 +1,29 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/dal";
-import { PostEditor } from "@/components/admin/PostEditor";
+import { PostEditorLoader } from "@/components/admin/PostEditorLoader";
+import type { PostKind } from "@/lib/posts";
 
-export default async function NewPostPage() {
+const KINDS: PostKind[] = ["blog", "stock", "workout"];
+
+export default async function NewPostPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ kind?: string }>;
+}) {
   await requireAdmin();
+  const { kind: rawKind } = await searchParams;
+  const kind = (KINDS as string[]).includes(rawKind ?? "")
+    ? (rawKind as PostKind)
+    : "blog";
+
   return (
     <div className="flex flex-col gap-4">
       <Link href="/admin" className="text-sm text-muted hover:underline">
         ← 목록
       </Link>
-      <PostEditor
+      <PostEditorLoader
         initial={{
-          kind: "blog",
+          kind,
           title: "",
           slug: "",
           excerpt: "",
@@ -21,6 +33,7 @@ export default async function NewPostPage() {
           isPublic: false,
           entryDate: null,
           contentJson: null,
+          data: {},
         }}
       />
     </div>
