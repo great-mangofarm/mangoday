@@ -14,7 +14,8 @@ function monthLabels(months: string[]): string[] {
 const baseChart: ApexOptions["chart"] = {
   toolbar: { show: false },
   fontFamily: "inherit",
-  animations: { speed: 400 },
+  // runMaskReveal(null) ApexCharts 버그 회피 — 등장 애니메이션 비활성
+  animations: { enabled: false },
 };
 
 export function DashboardCharts({ data }: { data: AdminDashboard }) {

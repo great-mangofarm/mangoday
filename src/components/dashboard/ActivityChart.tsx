@@ -17,7 +17,7 @@ export function ActivityChart({
       height={180}
       series={[{ name: "기록", data: counts }]}
       options={{
-        chart: { toolbar: { show: false }, fontFamily: "inherit", sparkline: { enabled: false } },
+        chart: { toolbar: { show: false }, fontFamily: "inherit", animations: { enabled: false } },
         colors: ["#f59e0b"],
         xaxis: { categories: labels, axisBorder: { show: false }, axisTicks: { show: false } },
         yaxis: { labels: { formatter: (v) => `${Math.round(v)}` }, tickAmount: 3 },
