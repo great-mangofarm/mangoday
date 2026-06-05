@@ -18,9 +18,11 @@
     "@blocknote/react": "^0.51.4",
     "@opennextjs/cloudflare": "^1.19.11",
     "@supabase/supabase-js": "^2.106.2",
+    "apexcharts": "^5.13.0",
     "jose": "^6.2.3",
     "next": "16.2.7",
     "react": "19.2.4",
+    "react-apexcharts": "^2.1.0",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
