@@ -36,6 +36,8 @@
 - ⬜ **자동 알림 크론** — `GET /api/push/run?secret=$PUSH_CRON_SECRET` 를 주기 호출(cron-job.org 등). 안 하면 "테스트 알림"만 수동.
 - ⬜ **Google OAuth 앱 게시** — Testing→Production. 해야 본인 외 방문자도 구글로 댓글 로그인. (지금은 Test users만)
 - ⬜ 관리자 댓글 "숨김" 모더레이션 / 오프라인 캐싱(현재 설치 위주)
+- ⬜ **운동 음차 사전 보강** — `src/lib/exercise-translit.ts`. 어색한 운동명 보일 때 단어 추가
+- ⬜ **운동 GIF self-host (B안)** — 기록한 운동 GIF를 Supabase Storage에 복사해 외부 의존 제거
 
 ---
 
@@ -59,8 +61,16 @@
 - **카카오 삽질**: 콘솔 UI가 자주 바껴서 Redirect URI 위치를 한참 헤맴 → 결국 **플랫폼키 > REST API 키 설정**에 있었음. `KOE205`=동의항목 미설정(닉네임/프로필 켜야), `KOE010`=Client Secret 켜놓고 안 보냄 → 시크릿 등록으로 해결.
 
 ### Phase 5 — 테마별 일지
-- posts 재사용(kind=stock/workout) + `data` jsonb에 일지값(주식 pnl/tickers, 운동 exercises). 손익 색은 **한국식(빨강=이익/파랑=손실)**.
+- **주식**: posts(kind=stock) + `data` jsonb(pnl/tickers). 손익 색은 **한국식(빨강=이익/파랑=손실)**.
 - **함정**: BlockNote가 SSR에서 `window` 참조로 터짐 → `PostEditorLoader`로 `dynamic(ssr:false)` 클라이언트 로드.
+
+### 운동일지 v2 (피드백 반영) — posts에서 분리
+- 피드백: "운동 1개 = 독립 기록, 같은 날짜끼리 모아서 하루 일지로". → **새 테이블 `workout_entries`** (마이그레이션 `0003`, Supabase에서 실행 완료). posts(kind=workout)는 더 안 씀(에디터 종류에서도 제거).
+- **FLEEK 벤치마킹**: 부위별 운동 라이브러리에서 선택 + 동작 GIF.
+  - 무료 데이터 = **oss.exercisedb.dev**(키 불필요, 1,500개, 부위필터 `?bodyParts=`, 이름검색 `?name=`, 직접 GIF URL). exercisedb.dev 본판은 상업(AscendAPI)화됨.
+  - **DB에 카탈로그를 저장하지 않고 API 연결** — `/api/exercises`(서버 프록시)가 oss를 호출 + 한글 음차. workout_entries엔 기록한 운동만(이름·exercise_id·gif_url 링크) 저장. ⚠️ 외부 서비스/CDN 죽으면 과거 GIF도 깨짐 → 필요시 (B)선택운동 GIF를 Supabase Storage에 복사.
+  - **한글 음차**(번역X): `src/lib/exercise-translit.ts` 단어 사전. 어색하면 사전만 수정.
+- 구조: `lib/workout.ts`·`workout-actions.ts`, `components/workout/{ExercisePicker,WorkoutLogger}`, `/admin/workout`, 공개 `/workout`·`/workout/[date]`.
 
 ### Phase 6 — 캘린더
 - 날짜를 **KST 기준 문자열**로 다뤄 서버(UTC) 드리프트 방지. 반복 전개는 보이는 달 범위에서 날짜별 판정. 순수로직(`calendar-core`)/서버데이터(`calendar`) 분리 → 클라이언트 번들에 service_role 안 새게.

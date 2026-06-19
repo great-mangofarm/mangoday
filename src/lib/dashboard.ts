@@ -1,5 +1,6 @@
 import { getSupabaseAdmin, getSupabaseAnon } from "./supabase";
-import { stockPnl, workoutVolume } from "./journal";
+import { stockPnl } from "./journal";
+import { entryVolume, type WorkoutSet } from "./workout";
 import { expandOccurrences, toKstDate, todayKst, type CalendarEvent } from "./calendar-core";
 
 /** 최근 n개월 "YYYY-MM" (현재 달 포함, KST) */
@@ -60,8 +61,17 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     if (i != null) {
       if (p.status === "published") postsPerMonth[i] += 1;
       if (p.kind === "stock") stockPnlPerMonth[i] += stockPnl(p.data);
-      if (p.kind === "workout") workoutVolumePerMonth[i] += workoutVolume(p.data);
     }
+  }
+
+  // 운동 볼륨: workout_entries(운동 1개=1행) 를 월별 합산
+  const { data: woData } = await sb
+    .from("workout_entries")
+    .select("entry_date, sets")
+    .gte("entry_date", `${months[0]}-01`);
+  for (const w of (woData ?? []) as { entry_date: string; sets: WorkoutSet[] }[]) {
+    const wi = idx.get(w.entry_date.slice(0, 7));
+    if (wi != null) workoutVolumePerMonth[wi] += entryVolume(w.sets);
   }
 
   // 이번 달 습관(할일) 수행률: 이번 달 1일~오늘 occurrence 대비 완료

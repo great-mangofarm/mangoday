@@ -29,6 +29,7 @@ export default async function AdminLayout({
 
           <nav className="hidden items-center gap-4 text-sm sm:flex">
             <Link href="/admin" className="text-muted hover:text-foreground">글</Link>
+            <Link href="/admin/workout" className="text-muted hover:text-foreground">운동</Link>
             <Link href="/admin/calendar" className="text-muted hover:text-foreground">캘린더</Link>
             <Link href="/admin/dashboard" className="text-muted hover:text-foreground">대시보드</Link>
           </nav>
